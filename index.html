@@ -2,73 +2,1075 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport"
+ content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#000000">
+
 <title>ニュース電光掲示板 LIVE</title>
+
 <style>
-*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;background:#000;color:#fff;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif}
-header{height:58px;display:flex;align-items:center;gap:9px;padding:env(safe-area-inset-top) 12px 0;background:#090909;border-bottom:1px solid #292929}
-.tag{font-weight:700;font-size:12px;padding:5px 8px;border:1px solid #555;border-radius:6px}.live{color:#ff5656}.mat{color:#ffd85a}
-#status{font-size:12px;color:#aaa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#stage{height:calc(100% - 58px);display:flex;align-items:center;overflow:hidden}
-#ticker{position:absolute;white-space:nowrap;font-size:clamp(28px,7.5vw,70px);font-weight:750;letter-spacing:.02em;transform:translateX(100vw);will-change:transform}
-.nhk{color:#f4f4f4}.industry{color:#ffd85a}.sep{color:#555;padding:0 1em}
-#help{position:fixed;left:12px;bottom:12px;font-size:11px;color:#777}
-#buttons{position:fixed;right:10px;bottom:9px;display:flex;gap:5px;opacity:.35}
-button{background:#191919;color:white;border:1px solid #555;border-radius:8px;padding:7px 11px;font-size:15px}
+*{box-sizing:border-box}
+
+html,body{
+  margin:0;
+  width:100%;
+  height:100%;
+  background:#000;
+  color:#fff;
+  font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;
+  overflow:hidden;
+  touch-action:manipulation;
+}
+
+/* ===== 上部メニュー ===== */
+
+header{
+  height:128px;
+  background:#090909;
+  border-bottom:1px solid #333;
+  padding:7px 6px;
+  position:relative;
+  z-index:20;
+}
+
+.title{
+  text-align:center;
+  color:#999;
+  font-size:11px;
+  height:16px;
+}
+
+/* カテゴリ */
+
+.categories{
+  display:flex;
+  gap:5px;
+  justify-content:center;
+}
+
+.cat{
+  flex:1;
+  height:38px;
+  border:1px solid #444;
+  border-radius:9px;
+  background:#181818;
+  color:#fff;
+  font-size:14px;
+  font-weight:700;
+}
+
+.cat.active{
+  background:#1264d8;
+  border-color:#4c96ff;
+}
+
+/* 操作ボタン */
+
+.controls{
+  display:flex;
+  justify-content:center;
+  gap:4px;
+  margin-top:6px;
+  flex-wrap:wrap;
+}
+
+.controls button{
+  height:28px;
+  padding:3px 7px;
+  background:#1b1b1b;
+  color:#fff;
+  border:1px solid #444;
+  border-radius:6px;
+  font-size:11px;
+}
+
+.controls button.active{
+  background:#555;
+  border-color:#aaa;
+}
+
+/* ===== ニュース領域 ===== */
+
+#stage{
+  position:absolute;
+  top:128px;
+  bottom:0;
+  left:0;
+  right:0;
+
+  display:grid;
+  grid-template-rows:1fr;
+
+  background:#000;
+}
+
+.lane{
+  position:relative;
+  overflow:hidden;
+  border-bottom:1px solid #292929;
+
+  touch-action:pan-y;
+  user-select:none;
+  -webkit-user-select:none;
+}
+
+.ticker{
+  position:absolute;
+
+  left:0;
+  top:50%;
+
+  white-space:nowrap;
+
+  font-weight:700;
+  font-size:34px;
+
+  text-decoration:none;
+
+  transform:translate(100vw,-50%);
+
+  will-change:transform;
+}
+
+/* 色 */
+
+.newsText{
+  color:#fff;
+}
+
+.weatherText{
+  color:#6ecbff;
+}
+
+.investText{
+  color:#ffd54a;
+}
+
+/* 状態表示 */
+
+#status{
+  position:fixed;
+  right:6px;
+  bottom:4px;
+
+  font-size:9px;
+  color:#555;
+
+  z-index:30;
+  pointer-events:none;
+}
+
 </style>
 </head>
-<body>
-<header><span class="tag live">● LIVE</span><span class="tag">NHK</span><span class="tag mat">材料・素材</span><span id="status">最新ニュースを取得しています…</span></header>
-<div id="stage"><div id="ticker"><span class="nhk">最新ニュースを取得しています…</span></div></div>
-<div id="help">5分ごとに自動更新</div>
-<div id="buttons"><button id="minus">−</button><button id="toggle">Ⅱ</button><button id="plus">＋</button><button id="reload">↻</button></div>
-<script>
-const feeds=[
- {kind:"nhk", prefix:"【NHK】", url:"https://news.google.com/rss/search?q=site%3Anhk.or.jp%2Fnews&hl=ja&gl=JP&ceid=JP%3Aja"},
- {kind:"industry", prefix:"【材料】", url:"https://news.google.com/rss/search?q=%28%E6%9D%90%E6%96%99+OR+%E7%B4%A0%E6%9D%90+OR+%E9%89%84%E9%8B%BC+OR+%E5%8D%8A%E5%B0%8E%E4%BD%93+OR+%E3%82%BB%E3%83%A9%E3%83%9F%E3%83%83%E3%82%AF%E3%82%B9+OR+%E9%87%91%E5%B1%9E%29+%28%E6%97%A5%E5%88%8A%E5%B7%A5%E6%A5%AD%E6%96%B0%E8%81%9E+OR+site%3Anikkan.co.jp%29&hl=ja&gl=JP&ceid=JP%3Aja"}
-];
-const api=u=>"https://api.rss2json.com/v1/api.json?rss_url="+encodeURIComponent(u);
-let speed=75,paused=false,x=innerWidth,last=performance.now();
 
-function clean(t){return (t||"").replace(/\s*-\s*NHK.*$/,"").replace(/\s*-\s*日刊工業新聞.*$/,"").trim()}
-function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-async function getFeed(f){
- const r=await fetch(api(f.url)+"&t="+Date.now(),{cache:"no-store"});
- if(!r.ok) throw new Error("HTTP "+r.status);
- const j=await r.json();
- if(j.status!=="ok"||!j.items) throw new Error("feed");
- return j.items.slice(0,12).map(i=>({kind:f.kind,title:f.prefix+clean(i.title)}));
+<body>
+
+<header>
+
+<div class="title">
+  NEWS TICKER LIVE
+</div>
+
+<div class="categories">
+
+<button
+ class="cat active"
+ onclick="changeCategory('news',this)">
+ 📰 ニュース
+</button>
+
+<button
+ class="cat"
+ onclick="changeCategory('weather',this)">
+ ☀️ 天気
+</button>
+
+<button
+ class="cat"
+ onclick="changeCategory('investment',this)">
+ 🏭 設備投資
+</button>
+
+</div>
+
+
+<div class="controls">
+
+<button onclick="slower()">🐢</button>
+<button onclick="faster()">🐇</button>
+
+<button onclick="fontDown()">文字−</button>
+<button onclick="fontUp()">文字＋</button>
+
+<button id="row1"
+ class="active"
+ onclick="setRows(1)">
+ 1行
+</button>
+
+<button id="row2"
+ onclick="setRows(2)">
+ 2行
+</button>
+
+<button id="row3"
+ onclick="setRows(3)">
+ 3行
+</button>
+
+<button id="repeat1"
+ class="active"
+ onclick="setRepeat(1)">
+ 🔁1回
+</button>
+
+<button id="repeat2"
+ onclick="setRepeat(2)">
+ 2回
+</button>
+
+<button onclick="fullscreen()">
+ ⛶
+</button>
+
+</div>
+
+</header>
+
+
+<div id="stage"></div>
+
+<div id="status">
+取得中...
+</div>
+
+
+<script>
+
+/* =========================
+   基本設定
+========================= */
+
+let category="news";
+
+let speed=1.4;
+
+let fontSize=34;
+
+let rows=1;
+
+let repeatSetting=1;
+
+let articles=[];
+
+let lanes=[];
+
+
+/* =========================
+   カテゴリ変更
+========================= */
+
+function changeCategory(type,button){
+
+ category=type;
+
+ document
+ .querySelectorAll(".cat")
+ .forEach(b=>b.classList.remove("active"));
+
+ button.classList.add("active");
+
+ loadNews();
 }
-async function update(){
- const st=document.getElementById("status"); st.textContent="更新中…";
- const results=await Promise.allSettled(feeds.map(getFeed));
- let a=[];
- results.forEach(r=>{if(r.status==="fulfilled")a.push(...r.value)});
- const seen=new Set(); a=a.filter(v=>v.title.length>7&&!seen.has(v.title)&&(seen.add(v.title),true));
- if(!a.length){
-   document.getElementById("ticker").innerHTML='<span class="nhk">取得に失敗しました。右下の ↻ を押してください。</span>';
-   st.textContent="ニュース取得エラー"; return;
+
+
+/* =========================
+   ニュース取得
+========================= */
+
+async function loadNews(){
+
+ const status=
+ document.getElementById("status");
+
+ status.textContent="取得中...";
+
+ try{
+
+  const response=
+  await fetch(
+   "/api/news?category="+
+   category+
+   "&t="+Date.now()
+  );
+
+  const data=
+  await response.json();
+
+  articles=
+   data.items || data;
+
+  if(!Array.isArray(articles)){
+   articles=[];
+  }
+
+
+  /* 重複記事削除 */
+
+  const seen=
+   new Set();
+
+  articles=
+   articles.filter(article=>{
+
+    const key=
+     article.link ||
+     article.url ||
+     article.title;
+
+    if(!key) return false;
+
+    if(seen.has(key)){
+     return false;
+    }
+
+    seen.add(key);
+
+    return true;
+   });
+
+
+  status.textContent=
+   articles.length+"件";
+
+  createLanes();
+
  }
- document.getElementById("ticker").innerHTML=a.map(v=>`<span class="${v.kind}">${escapeHtml(v.title)}</span><span class="sep">◆</span>`).join("");
- st.textContent="更新 "+new Date().toLocaleTimeString("ja-JP",{hour:"2-digit",minute:"2-digit"});
- x=innerWidth;
-}
-function anim(t){
- if(!paused){
-   x-=speed*(t-last)/1000;
-   const el=document.getElementById("ticker"), w=el.scrollWidth;
-   if(x < -w) x=innerWidth;
-   el.style.transform=`translateX(${x}px)`;
+ catch(error){
+
+  console.error(error);
+
+  status.textContent=
+   "取得エラー";
  }
- last=t;requestAnimationFrame(anim);
 }
-document.getElementById("toggle").onclick=()=>{paused=!paused;document.getElementById("toggle").textContent=paused?"▶":"Ⅱ"};
-document.getElementById("minus").onclick=()=>speed=Math.max(20,speed-15);
-document.getElementById("plus").onclick=()=>speed=Math.min(180,speed+15);
-document.getElementById("reload").onclick=update;
-update();setInterval(update,300000);requestAnimationFrame(anim);
+
+
+/* =========================
+   行を作成
+========================= */
+
+function createLanes(){
+
+ const stage=
+  document.getElementById("stage");
+
+ stage.innerHTML="";
+
+ stage.style.gridTemplateRows=
+  `repeat(${rows},1fr)`;
+
+ lanes=[];
+
+
+ for(let i=0;i<rows;i++){
+
+  const lane=
+   document.createElement("div");
+
+  lane.className="lane";
+
+  stage.appendChild(lane);
+
+
+  const laneData={
+
+   element:lane,
+
+   index:i,
+
+   repeatCount:0,
+
+   animationId:null,
+
+   ticker:null,
+
+   x:0,
+
+   touchStartX:0,
+
+   touchCurrentX:0,
+
+   dragging:false,
+
+   moved:false
+
+  };
+
+
+  lanes.push(laneData);
+
+  setupSwipe(
+   lane,
+   i
+  );
+
+  showArticle(i);
+ }
+}
+
+
+/* =========================
+   記事表示
+========================= */
+
+function showArticle(laneNumber){
+
+ if(!articles.length){
+  return;
+ }
+
+ const lane=
+  lanes[laneNumber];
+
+ if(!lane) return;
+
+
+ if(lane.animationId){
+
+  cancelAnimationFrame(
+   lane.animationId
+  );
+ }
+
+
+ const article=
+  articles[
+   (
+    (lane.index % articles.length)
+    +articles.length
+   )
+   %articles.length
+  ];
+
+
+ const ticker=
+  document.createElement("a");
+
+ ticker.className="ticker";
+
+
+ if(category==="news"){
+  ticker.classList.add(
+   "newsText"
+  );
+ }
+
+ if(category==="weather"){
+  ticker.classList.add(
+   "weatherText"
+  );
+ }
+
+ if(category==="investment"){
+  ticker.classList.add(
+   "investText"
+  );
+ }
+
+
+ ticker.textContent=
+  article.title ||
+  "ニュース";
+
+
+ ticker.href=
+  article.link ||
+  article.url ||
+  "#";
+
+
+ ticker.target="_blank";
+
+ ticker.rel=
+  "noopener noreferrer";
+
+
+ ticker.style.fontSize=
+  fontSize+"px";
+
+
+ /* スワイプした場合は
+    リンクを開かない */
+
+ ticker.addEventListener(
+  "click",
+  function(e){
+
+   if(lane.moved){
+
+    e.preventDefault();
+
+    lane.moved=false;
+   }
+
+  }
+ );
+
+
+ lane.element.innerHTML="";
+
+ lane.element.appendChild(
+  ticker
+ );
+
+
+ lane.ticker=
+  ticker;
+
+
+ lane.x=
+  lane.element.clientWidth;
+
+
+ drawTicker(
+  lane
+ );
+
+
+ animateTicker(
+  laneNumber
+ );
+}
+
+
+/* =========================
+   描画
+========================= */
+
+function drawTicker(lane){
+
+ if(!lane.ticker){
+  return;
+ }
+
+ lane.ticker.style.transform=
+  `translate(${lane.x}px,-50%)`;
+}
+
+
+/* =========================
+   自動スクロール
+========================= */
+
+function animateTicker(
+ laneNumber
+){
+
+ const lane=
+  lanes[laneNumber];
+
+ if(!lane) return;
+
+
+ function frame(){
+
+  if(!lane.dragging){
+
+   lane.x-=speed;
+
+   drawTicker(
+    lane
+   );
+
+
+   if(
+    lane.x <
+    -lane.ticker.offsetWidth
+    -30
+   ){
+
+    lane.repeatCount++;
+
+
+    /* 指定回数流したら
+       次の記事 */
+
+    if(
+     lane.repeatCount
+     >=repeatSetting
+    ){
+
+     lane.repeatCount=0;
+
+     lane.index+=rows;
+    }
+
+
+    showArticle(
+     laneNumber
+    );
+
+    return;
+   }
+  }
+
+
+  lane.animationId=
+   requestAnimationFrame(
+    frame
+   );
+ }
+
+
+ lane.animationId=
+  requestAnimationFrame(
+   frame
+  );
+}
+
+
+/* =========================
+   スワイプ
+========================= */
+
+function setupSwipe(
+ element,
+ laneNumber
+){
+
+ element.addEventListener(
+  "touchstart",
+  function(e){
+
+   const lane=
+    lanes[laneNumber];
+
+   if(!lane) return;
+
+   lane.dragging=true;
+
+   lane.moved=false;
+
+   lane.touchStartX=
+    e.touches[0].clientX;
+
+   lane.touchCurrentX=
+    lane.touchStartX;
+
+  },
+  {passive:true}
+ );
+
+
+ element.addEventListener(
+  "touchmove",
+  function(e){
+
+   const lane=
+    lanes[laneNumber];
+
+   if(!lane) return;
+
+
+   lane.touchCurrentX=
+    e.touches[0].clientX;
+
+
+   const difference=
+    lane.touchCurrentX
+    -lane.touchStartX;
+
+
+   if(
+    Math.abs(difference)>8
+   ){
+
+    lane.moved=true;
+   }
+
+
+   /*
+   指について
+   ニュースが動く
+   */
+
+   lane.x+=
+    difference;
+
+
+   lane.touchStartX=
+    lane.touchCurrentX;
+
+
+   drawTicker(
+    lane
+   );
+
+  },
+  {passive:true}
+ );
+
+
+ element.addEventListener(
+  "touchend",
+  function(){
+
+   const lane=
+    lanes[laneNumber];
+
+   if(!lane) return;
+
+
+   lane.dragging=false;
+
+
+   const distance=
+    lane.touchCurrentX
+    -lane.touchStartX;
+
+
+   /*
+   touchmoveで位置が
+   更新されているので
+   movedを利用して判定
+   */
+
+
+   if(!lane.moved){
+    return;
+   }
+
+
+   /*
+   最終的な指位置を利用
+   */
+
+   const center=
+    window.innerWidth/2;
+
+
+   /*
+   左方向へ大きく移動していたら
+   次の記事
+   */
+
+   if(
+    lane.touchCurrentX
+    < center
+   ){
+
+    skipNext(
+     laneNumber
+    );
+
+   }else{
+
+    skipPrevious(
+     laneNumber
+    );
+
+   }
+
+  },
+  {passive:true}
+ );
+
+}
+
+
+/* =========================
+   次の記事
+========================= */
+
+function skipNext(
+ laneNumber
+){
+
+ const lane=
+  lanes[laneNumber];
+
+ if(!lane) return;
+
+ lane.repeatCount=0;
+
+ lane.index+=rows;
+
+ swipeAway(
+  laneNumber,
+  -1
+ );
+}
+
+
+/* =========================
+   前の記事
+========================= */
+
+function skipPrevious(
+ laneNumber
+){
+
+ const lane=
+  lanes[laneNumber];
+
+ if(!lane) return;
+
+ lane.repeatCount=0;
+
+ lane.index-=rows;
+
+ swipeAway(
+  laneNumber,
+  1
+ );
+}
+
+
+/* =========================
+   シュッと流す演出
+========================= */
+
+function swipeAway(
+ laneNumber,
+ direction
+){
+
+ const lane=
+  lanes[laneNumber];
+
+ if(!lane) return;
+
+
+ if(lane.animationId){
+
+  cancelAnimationFrame(
+   lane.animationId
+  );
+ }
+
+
+ let velocity=
+  35*direction;
+
+
+ function fly(){
+
+  lane.x+=velocity;
+
+  velocity*=1.05;
+
+  drawTicker(
+   lane
+  );
+
+
+  if(
+   lane.x <
+   -lane.ticker.offsetWidth-100
+   ||
+   lane.x >
+   window.innerWidth+100
+  ){
+
+   showArticle(
+    laneNumber
+   );
+
+   return;
+  }
+
+
+  requestAnimationFrame(
+   fly
+  );
+ }
+
+
+ requestAnimationFrame(
+  fly
+ );
+}
+
+
+/* =========================
+   速度
+========================= */
+
+function slower(){
+
+ speed=
+  Math.max(
+   0.25,
+   speed-0.25
+  );
+}
+
+
+function faster(){
+
+ speed=
+  Math.min(
+   7,
+   speed+0.25
+  );
+}
+
+
+/* =========================
+   文字サイズ
+========================= */
+
+function fontDown(){
+
+ fontSize=
+  Math.max(
+   18,
+   fontSize-4
+  );
+
+ updateFont();
+}
+
+
+function fontUp(){
+
+ fontSize=
+  Math.min(
+   90,
+   fontSize+4
+  );
+
+ updateFont();
+}
+
+
+function updateFont(){
+
+ document
+ .querySelectorAll(".ticker")
+ .forEach(t=>{
+
+  t.style.fontSize=
+   fontSize+"px";
+
+ });
+}
+
+
+/* =========================
+   行数変更
+========================= */
+
+function setRows(n){
+
+ rows=n;
+
+
+ ["row1","row2","row3"]
+ .forEach(id=>{
+
+  document
+   .getElementById(id)
+   .classList
+   .remove("active");
+
+ });
+
+
+ document
+  .getElementById(
+   "row"+n
+  )
+  .classList
+  .add("active");
+
+
+ createLanes();
+}
+
+
+/* =========================
+   1回・2回
+========================= */
+
+function setRepeat(n){
+
+ repeatSetting=n;
+
+
+ ["repeat1","repeat2"]
+ .forEach(id=>{
+
+  document
+   .getElementById(id)
+   .classList
+   .remove("active");
+
+ });
+
+
+ document
+  .getElementById(
+   "repeat"+n
+  )
+  .classList
+  .add("active");
+
+
+ /*
+  現在の記事から
+  新しい回数設定を適用
+ */
+
+ lanes.forEach(
+  lane=>{
+   lane.repeatCount=0;
+  }
+ );
+}
+
+
+/* =========================
+   全画面
+========================= */
+
+function fullscreen(){
+
+ if(
+  !document.fullscreenElement
+ ){
+
+  document
+   .documentElement
+   .requestFullscreen()
+   .catch(()=>{});
+
+ }else{
+
+  document
+   .exitFullscreen();
+
+ }
+}
+
+
+/* =========================
+   起動
+========================= */
+
+loadNews();
+
+
+/* 5分ごと更新 */
+
+setInterval(
+ loadNews,
+ 300000
+);
+
 </script>
-<button id="fullscreen" onclick="document.documentElement.requestFullscreen()">⛶ 全画面</button>
-</body></html>
+
+</body>
+</html>
