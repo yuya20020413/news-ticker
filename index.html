@@ -2,12 +2,10 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport"
- content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
 <meta name="theme-color" content="#000000">
 
-<title>ニュース電光掲示板 LIVE</title>
+<title>NEWS TICKER LIVE</title>
 
 <style>
 *{box-sizing:border-box}
@@ -18,71 +16,69 @@ html,body{
   height:100%;
   background:#000;
   color:#fff;
-  font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;
+  font-family:Arial,"Helvetica Neue",sans-serif;
   overflow:hidden;
-  touch-action:manipulation;
 }
 
-/* ===== 上部メニュー ===== */
+/* ===== 上部 ===== */
 
 header{
-  height:128px;
+  height:120px;
   background:#090909;
   border-bottom:1px solid #333;
-  padding:7px 6px;
+  padding:6px;
   position:relative;
-  z-index:20;
+  z-index:10;
 }
 
 .title{
   text-align:center;
   color:#999;
-  font-size:11px;
-  height:16px;
+  font-size:12px;
+  height:18px;
 }
 
-/* カテゴリ */
+/* ===== カテゴリ ===== */
 
 .categories{
   display:flex;
-  gap:5px;
-  justify-content:center;
+  gap:6px;
 }
 
 .cat{
   flex:1;
-  height:38px;
-  border:1px solid #444;
-  border-radius:9px;
+  height:42px;
+  border:2px solid #444;
+  border-radius:10px;
   background:#181818;
-  color:#fff;
-  font-size:14px;
-  font-weight:700;
+  color:#aaa;
+  font-size:15px;
+  font-weight:bold;
 }
 
 .cat.active{
-  background:#1264d8;
-  border-color:#4c96ff;
+  background:#145dcc;
+  border-color:#65a0ff;
+  color:#fff;
 }
 
-/* 操作ボタン */
+/* ===== 設定 ===== */
 
 .controls{
   display:flex;
   justify-content:center;
-  gap:4px;
-  margin-top:6px;
-  flex-wrap:wrap;
+  gap:5px;
+  margin-top:7px;
 }
 
 .controls button{
-  height:28px;
-  padding:3px 7px;
-  background:#1b1b1b;
+  height:30px;
+  padding:3px 9px;
+  background:#191919;
   color:#fff;
-  border:1px solid #444;
-  border-radius:6px;
-  font-size:11px;
+  border:1px solid #555;
+  border-radius:7px;
+  font-size:12px;
 }
 
 .controls button.active{
@@ -90,45 +86,45 @@ header{
   border-color:#aaa;
 }
 
-/* ===== ニュース領域 ===== */
+/* ===== 電光掲示板 ===== */
 
 #stage{
   position:absolute;
-  top:128px;
+  top:120px;
   bottom:0;
   left:0;
   right:0;
 
-  display:grid;
-  grid-template-rows:1fr;
+  display:flex;
+  flex-direction:column;
 
   background:#000;
 }
 
 .lane{
   position:relative;
+  flex:1;
+  min-height:0;
   overflow:hidden;
-  border-bottom:1px solid #292929;
+  border-bottom:1px solid #282828;
 
-  touch-action:pan-y;
   user-select:none;
   -webkit-user-select:none;
 }
 
 .ticker{
   position:absolute;
-
   left:0;
   top:50%;
 
   white-space:nowrap;
 
-  font-weight:700;
-  font-size:34px;
+  font-size:38px;
+  font-weight:bold;
 
   text-decoration:none;
 
-  transform:translate(100vw,-50%);
+  transform:translate3d(100vw,-50%,0);
 
   will-change:transform;
 }
@@ -140,25 +136,37 @@ header{
 }
 
 .weatherText{
-  color:#6ecbff;
+  color:#67c9ff;
 }
 
-.investText{
-  color:#ffd54a;
+.investmentText{
+  color:#ffd447;
 }
 
-/* 状態表示 */
+/* カテゴリ表示 */
+
+.badge{
+  font-size:.65em;
+  margin-right:14px;
+  opacity:.85;
+}
+
+/* 状態 */
 
 #status{
   position:fixed;
-  right:6px;
-  bottom:4px;
+  right:7px;
+  bottom:5px;
+  color:#666;
+  font-size:10px;
+  z-index:20;
+}
 
-  font-size:9px;
-  color:#555;
+/* Fire TVでフォーカスが分かる */
 
-  z-index:30;
-  pointer-events:none;
+button:focus{
+  outline:3px solid #fff;
+  outline-offset:2px;
 }
 
 </style>
@@ -169,26 +177,29 @@ header{
 <header>
 
 <div class="title">
-  NEWS TICKER LIVE
+NEWS TICKER LIVE
 </div>
 
 <div class="categories">
 
 <button
+ id="cat-news"
  class="cat active"
- onclick="changeCategory('news',this)">
+ onclick="toggleCategory('news')">
  📰 ニュース
 </button>
 
 <button
+ id="cat-weather"
  class="cat"
- onclick="changeCategory('weather',this)">
+ onclick="toggleCategory('weather')">
  ☀️ 天気
 </button>
 
 <button
+ id="cat-investment"
  class="cat"
- onclick="changeCategory('investment',this)">
+ onclick="toggleCategory('investment')">
  🏭 設備投資
 </button>
 
@@ -198,40 +209,45 @@ header{
 <div class="controls">
 
 <button onclick="slower()">🐢</button>
+
 <button onclick="faster()">🐇</button>
 
 <button onclick="fontDown()">文字−</button>
+
 <button onclick="fontUp()">文字＋</button>
 
-<button id="row1"
+
+<button
+ id="row1"
  class="active"
  onclick="setRows(1)">
- 1行
+1行
 </button>
 
-<button id="row2"
+<button
+ id="row2"
  onclick="setRows(2)">
- 2行
+2行
 </button>
 
-<button id="row3"
+<button
+ id="row3"
  onclick="setRows(3)">
- 3行
+3行
 </button>
 
-<button id="repeat1"
+
+<button
+ id="repeat1"
  class="active"
  onclick="setRepeat(1)">
- 🔁1回
+🔁1回
 </button>
 
-<button id="repeat2"
+<button
+ id="repeat2"
  onclick="setRepeat(2)">
- 2回
-</button>
-
-<button onclick="fullscreen()">
- ⛶
+2回
 </button>
 
 </div>
@@ -248,826 +264,1080 @@ header{
 
 <script>
 
-/* =========================
-   基本設定
-========================= */
+/* ========================================
+   設定
+======================================== */
 
-let category="news";
+var selected = {
+  news:true,
+  weather:false,
+  investment:false
+};
 
-let speed=1.4;
+var speed = 1.5;
+var fontSize = 38;
+var rows = 1;
+var repeatSetting = 1;
 
-let fontSize=34;
+var articles = [];
+var lanes = [];
 
-let rows=1;
-
-let repeatSetting=1;
-
-let articles=[];
-
-let lanes=[];
+var loadNumber = 0;
 
 
-/* =========================
-   カテゴリ変更
-========================= */
+/* ========================================
+   カテゴリ ON / OFF
+======================================== */
 
-function changeCategory(type,button){
+function toggleCategory(type){
 
- category=type;
+  var activeCount = 0;
+  var key;
 
- document
- .querySelectorAll(".cat")
- .forEach(b=>b.classList.remove("active"));
+  for(key in selected){
+    if(selected[key]){
+      activeCount++;
+    }
+  }
 
- button.classList.add("active");
+  /* 最後の1個はOFFにしない */
 
- loadNews();
+  if(selected[type] && activeCount === 1){
+    return;
+  }
+
+  selected[type] = !selected[type];
+
+  updateCategoryButtons();
+
+  loadAllNews();
 }
 
 
-/* =========================
-   ニュース取得
-========================= */
+function updateCategoryButtons(){
 
-async function loadNews(){
+  var types = [
+    "news",
+    "weather",
+    "investment"
+  ];
 
- const status=
- document.getElementById("status");
+  var i;
 
- status.textContent="取得中...";
+  for(i=0;i<types.length;i++){
 
- try{
+    var type = types[i];
 
-  const response=
-  await fetch(
-   "/api/news?category="+
-   category+
-   "&t="+Date.now()
+    var button =
+      document.getElementById(
+        "cat-" + type
+      );
+
+    if(selected[type]){
+      button.className = "cat active";
+    }else{
+      button.className = "cat";
+    }
+  }
+}
+
+
+/* ========================================
+   API取得
+   XMLHttpRequestを使用
+   Fire TV互換性を優先
+======================================== */
+
+function getCategory(type,callback){
+
+  var xhr = new XMLHttpRequest();
+
+  var url =
+    "/api/news?category=" +
+    encodeURIComponent(type) +
+    "&t=" +
+    new Date().getTime();
+
+  xhr.open(
+    "GET",
+    url,
+    true
   );
 
-  const data=
-  await response.json();
+  xhr.onreadystatechange = function(){
 
-  articles=
-   data.items || data;
+    if(xhr.readyState !== 4){
+      return;
+    }
 
-  if(!Array.isArray(articles)){
-   articles=[];
+    if(
+      xhr.status >= 200 &&
+      xhr.status < 300
+    ){
+
+      try{
+
+        var data =
+          JSON.parse(
+            xhr.responseText
+          );
+
+        var list =
+          data.items || data;
+
+        if(
+          Object.prototype.toString.call(list)
+          !== "[object Array]"
+        ){
+          list = [];
+        }
+
+        callback(
+          null,
+          list
+        );
+
+      }catch(e){
+
+        callback(
+          e,
+          []
+        );
+      }
+
+    }else{
+
+      callback(
+        new Error(
+          "HTTP " + xhr.status
+        ),
+        []
+      );
+    }
+  };
+
+  xhr.onerror = function(){
+
+    callback(
+      new Error("network"),
+      []
+    );
+  };
+
+  xhr.send();
+}
+
+
+/* ========================================
+   選択カテゴリを全部取得
+======================================== */
+
+function loadAllNews(){
+
+  loadNumber++;
+
+  var thisLoad =
+    loadNumber;
+
+  var wanted = [];
+
+  if(selected.news){
+    wanted.push("news");
+  }
+
+  if(selected.weather){
+    wanted.push("weather");
+  }
+
+  if(selected.investment){
+    wanted.push("investment");
   }
 
 
-  /* 重複記事削除 */
+  document.getElementById(
+    "status"
+  ).innerHTML = "取得中...";
 
-  const seen=
-   new Set();
 
-  articles=
-   articles.filter(article=>{
+  var results = {};
 
-    const key=
-     article.link ||
-     article.url ||
-     article.title;
+  var finished = 0;
 
-    if(!key) return false;
 
-    if(seen.has(key)){
-     return false;
+  function done(){
+
+    finished++;
+
+    if(
+      finished !== wanted.length
+    ){
+      return;
     }
 
-    seen.add(key);
+    /*
+      古い通信結果だった場合は
+      使用しない
+    */
 
-    return true;
-   });
+    if(thisLoad !== loadNumber){
+      return;
+    }
+
+    articles =
+      mixArticles(
+        wanted,
+        results
+      );
+
+    articles =
+      removeDuplicates(
+        articles
+      );
 
 
-  status.textContent=
-   articles.length+"件";
+    document.getElementById(
+      "status"
+    ).innerHTML =
+      articles.length + "件";
 
-  createLanes();
 
- }
- catch(error){
+    createLanes();
+  }
 
-  console.error(error);
 
-  status.textContent=
-   "取得エラー";
- }
+  var i;
+
+  for(i=0;i<wanted.length;i++){
+
+    (function(type){
+
+      getCategory(
+        type,
+        function(error,list){
+
+          results[type] =
+            error ? [] : list;
+
+          /*
+            カテゴリ情報を追加
+          */
+
+          var j;
+
+          for(
+            j=0;
+            j<results[type].length;
+            j++
+          ){
+
+            results[type][j]._category =
+              type;
+          }
+
+          done();
+        }
+      );
+
+    })(wanted[i]);
+  }
 }
 
 
-/* =========================
+/* ========================================
+   カテゴリを交互に混ぜる
+======================================== */
+
+function mixArticles(
+  wanted,
+  results
+){
+
+  var output = [];
+
+  var max = 0;
+
+  var i;
+  var j;
+
+
+  for(i=0;i<wanted.length;i++){
+
+    var list =
+      results[wanted[i]] || [];
+
+    if(list.length > max){
+      max = list.length;
+    }
+  }
+
+
+  for(i=0;i<max;i++){
+
+    for(j=0;j<wanted.length;j++){
+
+      var type =
+        wanted[j];
+
+      var categoryList =
+        results[type] || [];
+
+      if(categoryList[i]){
+
+        output.push(
+          categoryList[i]
+        );
+      }
+    }
+  }
+
+
+  return output;
+}
+
+
+/* ========================================
+   重複削除
+======================================== */
+
+function removeDuplicates(list){
+
+  var output = [];
+
+  var seen = {};
+
+  var i;
+
+  for(i=0;i<list.length;i++){
+
+    var item =
+      list[i];
+
+    var key =
+      item.link ||
+      item.url ||
+      item.title;
+
+    if(!key){
+      continue;
+    }
+
+    if(seen[key]){
+      continue;
+    }
+
+    seen[key] = true;
+
+    output.push(item);
+  }
+
+  return output;
+}
+
+
+/* ========================================
    行を作成
-========================= */
+======================================== */
 
 function createLanes(){
 
- const stage=
-  document.getElementById("stage");
+  stopAllAnimations();
 
- stage.innerHTML="";
+  var stage =
+    document.getElementById(
+      "stage"
+    );
 
- stage.style.gridTemplateRows=
-  `repeat(${rows},1fr)`;
+  stage.innerHTML = "";
 
- lanes=[];
+  lanes = [];
 
+  var i;
 
- for(let i=0;i<rows;i++){
+  for(i=0;i<rows;i++){
 
-  const lane=
-   document.createElement("div");
+    var element =
+      document.createElement(
+        "div"
+      );
 
-  lane.className="lane";
+    element.className =
+      "lane";
 
-  stage.appendChild(lane);
-
-
-  const laneData={
-
-   element:lane,
-
-   index:i,
-
-   repeatCount:0,
-
-   animationId:null,
-
-   ticker:null,
-
-   x:0,
-
-   touchStartX:0,
-
-   touchCurrentX:0,
-
-   dragging:false,
-
-   moved:false
-
-  };
+    stage.appendChild(
+      element
+    );
 
 
-  lanes.push(laneData);
+    var lane = {
 
-  setupSwipe(
-   lane,
-   i
-  );
+      element:element,
 
-  showArticle(i);
- }
+      index:i,
+
+      repeatCount:0,
+
+      ticker:null,
+
+      x:0,
+
+      frame:null,
+
+      dragging:false,
+
+      startX:0,
+
+      lastX:0,
+
+      totalMove:0
+    };
+
+
+    lanes.push(lane);
+
+    setupTouch(
+      element,
+      i
+    );
+
+    showArticle(i);
+  }
 }
 
 
-/* =========================
+/* ========================================
+   全アニメーション停止
+======================================== */
+
+function stopAllAnimations(){
+
+  var i;
+
+  for(i=0;i<lanes.length;i++){
+
+    if(lanes[i].frame){
+
+      cancelAnimationFrame(
+        lanes[i].frame
+      );
+    }
+  }
+}
+
+
+/* ========================================
    記事表示
-========================= */
+======================================== */
 
 function showArticle(laneNumber){
 
- if(!articles.length){
-  return;
- }
-
- const lane=
-  lanes[laneNumber];
-
- if(!lane) return;
-
-
- if(lane.animationId){
-
-  cancelAnimationFrame(
-   lane.animationId
-  );
- }
-
-
- const article=
-  articles[
-   (
-    (lane.index % articles.length)
-    +articles.length
-   )
-   %articles.length
-  ];
-
-
- const ticker=
-  document.createElement("a");
-
- ticker.className="ticker";
-
-
- if(category==="news"){
-  ticker.classList.add(
-   "newsText"
-  );
- }
-
- if(category==="weather"){
-  ticker.classList.add(
-   "weatherText"
-  );
- }
-
- if(category==="investment"){
-  ticker.classList.add(
-   "investText"
-  );
- }
-
-
- ticker.textContent=
-  article.title ||
-  "ニュース";
-
-
- ticker.href=
-  article.link ||
-  article.url ||
-  "#";
-
-
- ticker.target="_blank";
-
- ticker.rel=
-  "noopener noreferrer";
-
-
- ticker.style.fontSize=
-  fontSize+"px";
-
-
- /* スワイプした場合は
-    リンクを開かない */
-
- ticker.addEventListener(
-  "click",
-  function(e){
-
-   if(lane.moved){
-
-    e.preventDefault();
-
-    lane.moved=false;
-   }
-
+  if(!articles.length){
+    return;
   }
- );
+
+  var lane =
+    lanes[laneNumber];
+
+  if(!lane){
+    return;
+  }
 
 
- lane.element.innerHTML="";
+  if(lane.frame){
 
- lane.element.appendChild(
-  ticker
- );
-
-
- lane.ticker=
-  ticker;
+    cancelAnimationFrame(
+      lane.frame
+    );
+  }
 
 
- lane.x=
-  lane.element.clientWidth;
+  var length =
+    articles.length;
+
+  var position =
+    lane.index % length;
+
+  if(position < 0){
+    position += length;
+  }
 
 
- drawTicker(
-  lane
- );
+  var article =
+    articles[position];
 
 
- animateTicker(
-  laneNumber
- );
+  var ticker =
+    document.createElement(
+      "a"
+    );
+
+  ticker.className =
+    "ticker";
+
+
+  var category =
+    article._category ||
+    "news";
+
+
+  if(category === "news"){
+
+    ticker.className +=
+      " newsText";
+
+  }else if(
+    category === "weather"
+  ){
+
+    ticker.className +=
+      " weatherText";
+
+  }else{
+
+    ticker.className +=
+      " investmentText";
+  }
+
+
+  var prefix = "";
+
+  if(category === "news"){
+    prefix = "📰 ";
+  }
+
+  if(category === "weather"){
+    prefix = "☀️ ";
+  }
+
+  if(category === "investment"){
+    prefix = "🏭 ";
+  }
+
+
+  ticker.innerHTML =
+    '<span class="badge">' +
+    prefix +
+    '</span>' +
+    escapeHTML(
+      article.title ||
+      "ニュース"
+    );
+
+
+  ticker.href =
+    article.link ||
+    article.url ||
+    "#";
+
+
+  ticker.target =
+    "_blank";
+
+
+  ticker.style.fontSize =
+    fontSize + "px";
+
+
+  lane.element.innerHTML =
+    "";
+
+  lane.element.appendChild(
+    ticker
+  );
+
+
+  lane.ticker =
+    ticker;
+
+  lane.x =
+    lane.element.clientWidth;
+
+
+  drawTicker(lane);
+
+  animateTicker(
+    laneNumber
+  );
 }
 
 
-/* =========================
+/* ========================================
+   HTML安全化
+======================================== */
+
+function escapeHTML(text){
+
+  return String(text)
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;");
+}
+
+
+/* ========================================
    描画
-========================= */
+======================================== */
 
 function drawTicker(lane){
 
- if(!lane.ticker){
-  return;
- }
+  if(!lane.ticker){
+    return;
+  }
 
- lane.ticker.style.transform=
-  `translate(${lane.x}px,-50%)`;
+  lane.ticker.style.transform =
+    "translate3d(" +
+    lane.x +
+    "px,-50%,0)";
 }
 
 
-/* =========================
+/* ========================================
    自動スクロール
-========================= */
+======================================== */
 
 function animateTicker(
- laneNumber
+  laneNumber
 ){
 
- const lane=
-  lanes[laneNumber];
+  var lane =
+    lanes[laneNumber];
 
- if(!lane) return;
-
-
- function frame(){
-
-  if(!lane.dragging){
-
-   lane.x-=speed;
-
-   drawTicker(
-    lane
-   );
+  if(!lane){
+    return;
+  }
 
 
-   if(
-    lane.x <
-    -lane.ticker.offsetWidth
-    -30
-   ){
+  function frame(){
 
-    lane.repeatCount++;
+    if(!lane.dragging){
+
+      lane.x -= speed;
+
+      drawTicker(lane);
 
 
-    /* 指定回数流したら
-       次の記事 */
+      if(
+        lane.x <
+        -lane.ticker.offsetWidth
+        -50
+      ){
 
-    if(
-     lane.repeatCount
-     >=repeatSetting
-    ){
+        lane.repeatCount++;
 
-     lane.repeatCount=0;
 
-     lane.index+=rows;
+        if(
+          lane.repeatCount >=
+          repeatSetting
+        ){
+
+          lane.repeatCount = 0;
+
+          lane.index += rows;
+        }
+
+
+        showArticle(
+          laneNumber
+        );
+
+        return;
+      }
     }
 
 
-    showArticle(
-     laneNumber
-    );
-
-    return;
-   }
+    lane.frame =
+      requestAnimationFrame(
+        frame
+      );
   }
 
 
-  lane.animationId=
-   requestAnimationFrame(
-    frame
-   );
- }
+  lane.frame =
+    requestAnimationFrame(
+      frame
+    );
+}
 
 
- lane.animationId=
-  requestAnimationFrame(
-   frame
+/* ========================================
+   iPhone / タッチ操作
+======================================== */
+
+function setupTouch(
+  element,
+  laneNumber
+){
+
+  element.addEventListener(
+    "touchstart",
+    function(e){
+
+      var lane =
+        lanes[laneNumber];
+
+      if(!lane){
+        return;
+      }
+
+      lane.dragging = true;
+
+      lane.startX =
+        e.touches[0].clientX;
+
+      lane.lastX =
+        lane.startX;
+
+      lane.totalMove = 0;
+
+    },
+    false
+  );
+
+
+  element.addEventListener(
+    "touchmove",
+    function(e){
+
+      var lane =
+        lanes[laneNumber];
+
+      if(!lane){
+        return;
+      }
+
+      var current =
+        e.touches[0].clientX;
+
+      var difference =
+        current -
+        lane.lastX;
+
+      lane.x +=
+        difference;
+
+      lane.totalMove +=
+        difference;
+
+      lane.lastX =
+        current;
+
+      drawTicker(lane);
+
+    },
+    false
+  );
+
+
+  element.addEventListener(
+    "touchend",
+    function(){
+
+      var lane =
+        lanes[laneNumber];
+
+      if(!lane){
+        return;
+      }
+
+      lane.dragging =
+        false;
+
+
+      if(
+        lane.totalMove < -50
+      ){
+
+        nextArticle(
+          laneNumber
+        );
+
+      }else if(
+        lane.totalMove > 50
+      ){
+
+        previousArticle(
+          laneNumber
+        );
+      }
+
+    },
+    false
   );
 }
 
 
-/* =========================
-   スワイプ
-========================= */
+/* ========================================
+   次へ
+======================================== */
 
-function setupSwipe(
- element,
- laneNumber
+function nextArticle(
+  laneNumber
 ){
 
- element.addEventListener(
-  "touchstart",
-  function(e){
-
-   const lane=
+  var lane =
     lanes[laneNumber];
 
-   if(!lane) return;
-
-   lane.dragging=true;
-
-   lane.moved=false;
-
-   lane.touchStartX=
-    e.touches[0].clientX;
-
-   lane.touchCurrentX=
-    lane.touchStartX;
-
-  },
-  {passive:true}
- );
-
-
- element.addEventListener(
-  "touchmove",
-  function(e){
-
-   const lane=
-    lanes[laneNumber];
-
-   if(!lane) return;
-
-
-   lane.touchCurrentX=
-    e.touches[0].clientX;
-
-
-   const difference=
-    lane.touchCurrentX
-    -lane.touchStartX;
-
-
-   if(
-    Math.abs(difference)>8
-   ){
-
-    lane.moved=true;
-   }
-
-
-   /*
-   指について
-   ニュースが動く
-   */
-
-   lane.x+=
-    difference;
-
-
-   lane.touchStartX=
-    lane.touchCurrentX;
-
-
-   drawTicker(
-    lane
-   );
-
-  },
-  {passive:true}
- );
-
-
- element.addEventListener(
-  "touchend",
-  function(){
-
-   const lane=
-    lanes[laneNumber];
-
-   if(!lane) return;
-
-
-   lane.dragging=false;
-
-
-   const distance=
-    lane.touchCurrentX
-    -lane.touchStartX;
-
-
-   /*
-   touchmoveで位置が
-   更新されているので
-   movedを利用して判定
-   */
-
-
-   if(!lane.moved){
+  if(!lane){
     return;
-   }
+  }
 
+  lane.repeatCount = 0;
 
-   /*
-   最終的な指位置を利用
-   */
+  lane.index += rows;
 
-   const center=
-    window.innerWidth/2;
-
-
-   /*
-   左方向へ大きく移動していたら
-   次の記事
-   */
-
-   if(
-    lane.touchCurrentX
-    < center
-   ){
-
-    skipNext(
-     laneNumber
-    );
-
-   }else{
-
-    skipPrevious(
-     laneNumber
-    );
-
-   }
-
-  },
-  {passive:true}
- );
-
-}
-
-
-/* =========================
-   次の記事
-========================= */
-
-function skipNext(
- laneNumber
-){
-
- const lane=
-  lanes[laneNumber];
-
- if(!lane) return;
-
- lane.repeatCount=0;
-
- lane.index+=rows;
-
- swipeAway(
-  laneNumber,
-  -1
- );
-}
-
-
-/* =========================
-   前の記事
-========================= */
-
-function skipPrevious(
- laneNumber
-){
-
- const lane=
-  lanes[laneNumber];
-
- if(!lane) return;
-
- lane.repeatCount=0;
-
- lane.index-=rows;
-
- swipeAway(
-  laneNumber,
-  1
- );
-}
-
-
-/* =========================
-   シュッと流す演出
-========================= */
-
-function swipeAway(
- laneNumber,
- direction
-){
-
- const lane=
-  lanes[laneNumber];
-
- if(!lane) return;
-
-
- if(lane.animationId){
-
-  cancelAnimationFrame(
-   lane.animationId
-  );
- }
-
-
- let velocity=
-  35*direction;
-
-
- function fly(){
-
-  lane.x+=velocity;
-
-  velocity*=1.05;
-
-  drawTicker(
-   lane
-  );
-
-
-  if(
-   lane.x <
-   -lane.ticker.offsetWidth-100
-   ||
-   lane.x >
-   window.innerWidth+100
-  ){
-
-   showArticle(
+  showArticle(
     laneNumber
-   );
-
-   return;
-  }
-
-
-  requestAnimationFrame(
-   fly
   );
- }
-
-
- requestAnimationFrame(
-  fly
- );
 }
 
 
-/* =========================
+/* ========================================
+   前へ
+======================================== */
+
+function previousArticle(
+  laneNumber
+){
+
+  var lane =
+    lanes[laneNumber];
+
+  if(!lane){
+    return;
+  }
+
+  lane.repeatCount = 0;
+
+  lane.index -= rows;
+
+  showArticle(
+    laneNumber
+  );
+}
+
+
+/* ========================================
+   Fire TV リモコン
+======================================== */
+
+document.addEventListener(
+  "keydown",
+  function(e){
+
+    var code =
+      e.keyCode ||
+      e.which;
+
+    /*
+      左：前の記事
+      右：次の記事
+    */
+
+    if(code === 37){
+
+      previousArticle(0);
+
+    }
+
+    if(code === 39){
+
+      nextArticle(0);
+
+    }
+  }
+);
+
+
+/* ========================================
    速度
-========================= */
+======================================== */
 
 function slower(){
 
- speed=
-  Math.max(
-   0.25,
-   speed-0.25
-  );
+  speed -= 0.25;
+
+  if(speed < 0.25){
+    speed = 0.25;
+  }
 }
 
 
 function faster(){
 
- speed=
-  Math.min(
-   7,
-   speed+0.25
-  );
+  speed += 0.25;
+
+  if(speed > 8){
+    speed = 8;
+  }
 }
 
 
-/* =========================
-   文字サイズ
-========================= */
+/* ========================================
+   文字
+======================================== */
 
 function fontDown(){
 
- fontSize=
-  Math.max(
-   18,
-   fontSize-4
-  );
+  fontSize -= 4;
 
- updateFont();
+  if(fontSize < 18){
+    fontSize = 18;
+  }
+
+  updateFont();
 }
 
 
 function fontUp(){
 
- fontSize=
-  Math.min(
-   90,
-   fontSize+4
-  );
+  fontSize += 4;
 
- updateFont();
+  if(fontSize > 100){
+    fontSize = 100;
+  }
+
+  updateFont();
 }
 
 
 function updateFont(){
 
- document
- .querySelectorAll(".ticker")
- .forEach(t=>{
+  var tickers =
+    document.getElementsByClassName(
+      "ticker"
+    );
 
-  t.style.fontSize=
-   fontSize+"px";
+  var i;
 
- });
-}
+  for(i=0;i<tickers.length;i++){
 
-
-/* =========================
-   行数変更
-========================= */
-
-function setRows(n){
-
- rows=n;
-
-
- ["row1","row2","row3"]
- .forEach(id=>{
-
-  document
-   .getElementById(id)
-   .classList
-   .remove("active");
-
- });
-
-
- document
-  .getElementById(
-   "row"+n
-  )
-  .classList
-  .add("active");
-
-
- createLanes();
-}
-
-
-/* =========================
-   1回・2回
-========================= */
-
-function setRepeat(n){
-
- repeatSetting=n;
-
-
- ["repeat1","repeat2"]
- .forEach(id=>{
-
-  document
-   .getElementById(id)
-   .classList
-   .remove("active");
-
- });
-
-
- document
-  .getElementById(
-   "repeat"+n
-  )
-  .classList
-  .add("active");
-
-
- /*
-  現在の記事から
-  新しい回数設定を適用
- */
-
- lanes.forEach(
-  lane=>{
-   lane.repeatCount=0;
+    tickers[i].style.fontSize =
+      fontSize + "px";
   }
- );
 }
 
 
-/* =========================
-   全画面
-========================= */
+/* ========================================
+   行数
+======================================== */
 
-function fullscreen(){
+function setRows(number){
 
- if(
-  !document.fullscreenElement
- ){
+  rows = number;
 
-  document
-   .documentElement
-   .requestFullscreen()
-   .catch(()=>{});
+  setActiveButton(
+    "row",
+    number,
+    3
+  );
 
- }else{
-
-  document
-   .exitFullscreen();
-
- }
+  createLanes();
 }
 
 
-/* =========================
+/* ========================================
+   表示回数
+======================================== */
+
+function setRepeat(number){
+
+  repeatSetting =
+    number;
+
+  setActiveButton(
+    "repeat",
+    number,
+    2
+  );
+
+  var i;
+
+  for(i=0;i<lanes.length;i++){
+
+    lanes[i].repeatCount =
+      0;
+  }
+}
+
+
+/* ========================================
+   ボタン表示
+======================================== */
+
+function setActiveButton(
+  prefix,
+  selectedNumber,
+  maximum
+){
+
+  var i;
+
+  for(i=1;i<=maximum;i++){
+
+    var button =
+      document.getElementById(
+        prefix+i
+      );
+
+    if(!button){
+      continue;
+    }
+
+    if(i === selectedNumber){
+
+      button.className =
+        "active";
+
+    }else{
+
+      button.className =
+        "";
+    }
+  }
+}
+
+
+/* ========================================
+   Fire TV用
+   requestAnimationFrameが不安定な場合の
+   フォールバック
+======================================== */
+
+window.requestAnimationFrame =
+  window.requestAnimationFrame ||
+  window.webkitRequestAnimationFrame ||
+  function(callback){
+
+    return window.setTimeout(
+      callback,
+      16
+    );
+  };
+
+
+window.cancelAnimationFrame =
+  window.cancelAnimationFrame ||
+  window.webkitCancelAnimationFrame ||
+  function(id){
+
+    clearTimeout(id);
+  };
+
+
+/* ========================================
    起動
-========================= */
+======================================== */
 
-loadNews();
+updateCategoryButtons();
+
+loadAllNews();
 
 
 /* 5分ごと更新 */
 
 setInterval(
- loadNews,
- 300000
+  loadAllNews,
+  300000
 );
 
 </script>
